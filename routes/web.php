@@ -24,4 +24,3 @@ Route::delete('/tasks/{task}', [TaskController::class, 'destroy']);
 
 
 
-

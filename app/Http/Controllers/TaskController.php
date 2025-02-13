@@ -14,19 +14,30 @@ class TaskController extends Controller
 
     public function store(Request $request)
     {
-        $task = Task::create($request->validate(['name' => 'required']));
-        return response()->json($task);
+        // Validate input
+        $validatedData = $request->validate([
+            'name' => 'required|string|max:255'
+        ]);
+
+        // Create new task
+        $task = Task::create($validatedData);
+
+        return response()->json($task, 201);
     }
 
-    public function update(Task $task)
+    public function update(Request $request, Task $task)
     {
+        // Toggle task completion status
         $task->update(['completed' => !$task->completed]);
-        return response()->json(['completed' => $task->completed]);
+
+        return response()->json(['id' => $task->id, 'completed' => $task->completed]);
     }
 
     public function destroy(Task $task)
     {
+        // Delete task
         $task->delete();
-        return response()->json(['success' => true]);
+
+        return response()->json(['success' => true, 'id' => $task->id]);
     }
 }

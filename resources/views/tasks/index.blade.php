@@ -8,6 +8,9 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
+    <!-- CSRF Token for AJAX -->
+    <meta name="csrf-token" content="{{ csrf_token() }}">
+
     <script>
     $(document).ready(function(){
         // ✅ Add Task
@@ -16,31 +19,37 @@
             $.ajax({
                 url: '/tasks',
                 method: 'POST',
-                data: $(this).serialize(),
+                data: {
+                    name: $('#task-name').val(),
+                    _token: $('meta[name="csrf-token"]').attr('content')
+                },
                 success: function(response) {
                     $('#task-list').append(`
                         <li class="list-group-item d-flex justify-content-between align-items-center task-item" data-id="${response.id}">
                             <div>
-                                <button class="btn btn-sm task-toggle btn-outline-success">Complete</button>
+                                <button class="btn btn-sm toggle-task btn-outline-success">Complete</button>
                                 <span class="ms-2 task-name">${response.name}</span>
                             </div>
-                            <button class="btn btn-sm btn-danger task-delete">Delete</button>
+                            <button class="btn btn-sm btn-danger delete-task">Delete</button>
                         </li>
                     `);
                     $('#task-name').val('');
+                },
+                error: function(xhr) {
+                    alert("Failed to add task. Error: " + xhr.responseText);
                 }
             });
         });
 
-        // ✅ Update Task (Mark as Complete/Undo)
-        $(document).on('click', '.task-toggle', function () {
+        // ✅ Toggle Task Completion
+        $(document).on('click', '.toggle-task', function () {
             let taskItem = $(this).closest('.task-item');
             let taskId = taskItem.data('id');
             let button = $(this);
             $.ajax({
                 url: `/tasks/${taskId}`,
                 method: 'PATCH',
-                data: {_token: '{{ csrf_token() }}'},
+                data: { _token: $('meta[name="csrf-token"]').attr('content') },
                 success: function (response) {
                     if (response.completed) {
                         button.removeClass('btn-outline-success').addClass('btn-success').text('Undo');
@@ -49,20 +58,26 @@
                         button.removeClass('btn-success').addClass('btn-outline-success').text('Complete');
                         taskItem.find('.task-name').removeClass('text-decoration-line-through');
                     }
+                },
+                error: function() {
+                    alert("Failed to update task. Please try again.");
                 }
             });
         });
 
         // ✅ Delete Task
-        $(document).on('click', '.task-delete', function () {
+        $(document).on('click', '.delete-task', function () {
             let taskItem = $(this).closest('.task-item');
             let taskId = taskItem.data('id');
             $.ajax({
                 url: `/tasks/${taskId}`,
                 method: 'DELETE',
-                data: {_token: '{{ csrf_token() }}'},
+                data: { _token: $('meta[name="csrf-token"]').attr('content') },
                 success: function () {
                     taskItem.fadeOut(300, function () { $(this).remove(); });
+                },
+                error: function() {
+                    alert("Failed to delete task. Please try again.");
                 }
             });
         });
@@ -84,27 +99,6 @@
             border-radius: 8px;
             box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
         }
-        .btn-primary {
-            background-color: #007bff;
-            border: none;
-        }
-        .btn-primary:hover {
-            background-color: #0056b3;
-        }
-        .btn-success {
-            background-color: #28a745;
-        }
-        .btn-outline-success {
-            border-color: #28a745;
-            color: #28a745;
-        }
-        .btn-outline-success:hover {
-            background-color: #28a745;
-            color: white;
-        }
-        .btn-danger {
-            background-color: #dc3545;
-        }
     </style>
 </head>
 <body>
@@ -119,12 +113,12 @@
                 @foreach($tasks as $task)
                     <li class="list-group-item d-flex justify-content-between align-items-center task-item" data-id="{{ $task->id }}">
                         <div>
-                            <button class="btn btn-sm task-toggle {{ $task->completed ? 'btn-success' : 'btn-outline-success' }}">
+                            <button class="btn btn-sm toggle-task {{ $task->completed ? 'btn-success' : 'btn-outline-success' }}">
                                 {{ $task->completed ? 'Undo' : 'Complete' }}
                             </button>
                             <span class="ms-2 task-name {{ $task->completed ? 'text-decoration-line-through' : '' }}">{{ $task->name }}</span>
                         </div>
-                        <button class="btn btn-sm btn-danger task-delete">Delete</button>
+                        <button class="btn btn-sm btn-danger delete-task">Delete</button>
                     </li>
                 @endforeach
             </ul>
